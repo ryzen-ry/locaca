@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📍 Location Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 90%;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 { color: #667eea; margin-bottom: 20px; }
+        .subtitle { color: #666; margin-bottom: 40px; }
+        .card-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .card {
+            flex: 1;
+            min-width: 200px;
+            padding: 30px;
+            border-radius: 15px;
+            text-decoration: none;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .card-emisor { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .card-receptor { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .card-icon { font-size: 48px; margin-bottom: 20px; }
+        .card-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .card-description { font-size: 14px; opacity: 0.9; }
+        .info {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        a { text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📍 Location Tracker</h1>
+        <div class="subtitle">Comparte tu ubicación en tiempo real</div>
+        
+        <div class="card-container">
+            <a href="/emisor.html" class="card card-emisor">
+                <div class="card-icon">📡</div>
+                <div class="card-title">Dispositivo Emisor</div>
+                <div class="card-description">Comparte tu ubicación con otro dispositivo</div>
+            </a>
+            
+            <a href="/receptor.html" class="card card-receptor">
+                <div class="card-icon">👁️</div>
+                <div class="card-title">Dispositivo Receptor</div>
+                <div class="card-description">Recibe la ubicación del emisor</div>
+            </a>
+        </div>
+        
+        <div class="info">
+            💡 <strong>Cómo funciona:</strong><br>
+            1. Un dispositivo se conecta como EMISOR y comparte su ubicación<br>
+            2. El otro dispositivo se conecta como RECEPTOR usando el código del emisor<br>
+            3. La ubicación se actualiza en tiempo real
+        </div>
+    </div>
+</body>
+</html>

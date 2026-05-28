@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📡 Emisor - Location Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #667eea; text-align: center; margin-bottom: 30px; }
+        .code-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .code-label { color: white; opacity: 0.9; margin-bottom: 10px; font-size: 14px; }
+        .code-value {
+            font-family: monospace;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            letter-spacing: 4px;
+            word-break: break-all;
+        }
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .share-btn {
+            background: #25D366;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+        button:hover { transform: translateY(-2px); }
+        .btn-start { background: #4CAF50; color: white; }
+        .btn-stop { background: #f44336; color: white; }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-active { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-inactive { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .coordinates {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            text-align: center;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📡 Dispositivo Emisor</h1>
+        
+        <div class="code-box">
+            <div class="code-label">🔑 TU CÓDIGO ÚNICO (Compártelo con el receptor)</div>
+            <div class="code-value" id="emisorCode">Cargando...</div>
+            <button class="share-btn" onclick="shareCode()">📤 Compartir código</button>
+        </div>
+        
+        <div class="info-card">
+            <p>✅ <strong>No necesitas código del receptor</strong></p>
+            <p>Simplemente comparte tu código y la otra persona podrá ver tu ubicación en tiempo real.</p>
+        </div>
+        
+        <button class="btn-start" onclick="startSharing()" id="startBtn">🟢 Comenzar a compartir ubicación</button>
+        <button class="btn-stop" onclick="stopSharing()" id="stopBtn" disabled>🔴 Detener</button>
+        
+        <div id="status" class="status status-inactive">⚪ Inactivo - No compartiendo ubicación</div>
+        
+        <div class="coordinates" id="coordinates">
+            📍 Esperando ubicación...
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="/" class="back-btn">← Volver al inicio</a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    
+    <script>
+        let stompClient = null;
+        let watchId = null;
+        let isSharing = false;
+        let emisorId = null;
+        
+        // Generar ID único para este emisor (se guarda para siempre)
+        function initEmisorId() {
+            let id = localStorage.getItem('emisorId');
+            if (!id) {
+                id = 'EM-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+                localStorage.setItem('emisorId', id);
+            }
+            document.getElementById('emisorCode').innerText = id;
+            return id;
+        }
+        
+        // Compartir código por WhatsApp u otras apps
+        function shareCode() {
+            const url = window.location.origin + '/receptor.html';
+            const text = `📍 Te invito a ver mi ubicación en tiempo real\n\nMi código es: ${emisorId}\n\nIngresa aquí: ${url}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Location Tracker',
+                    text: `Mi código es: ${emisorId}`,
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(`${emisorId}`);
+                alert(`✅ Código ${emisorId} copiado al portapapeles. Compártelo con el receptor.`);
+            }
+        }
+        
+        function connectWebSocket() {
+            return new Promise((resolve, reject) => {
+                const socket = new SockJS(`${window.location.origin}/ws-location`);
+                stompClient = Stomp.over(socket);
+                
+                stompClient.connect({}, () => {
+                    console.log('✅ Conectado al servidor');
+                    resolve();
+                }, (error) => {
+                    console.error('❌ Error de conexión:', error);
+                    reject(error);
+                });
+            });
+        }
+        
+        function sendLocation(position) {
+            if (!isSharing) return;
+            
+            // Ya no necesita receptorId! Se envía como broadcast a todos
+            const location = {
+                emisorId: emisorId,
+                receptorId: null,  // No se necesita
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                timestamp: Date.now(),
+                active: true
+            };
+            
+            if (stompClient && stompClient.connected) {
+                stompClient.send("/app/send-location", {}, JSON.stringify(location));
+                document.getElementById('coordinates').innerHTML = `
+                    📍 Ubicación enviada:<br>
+                    Lat: ${position.coords.latitude.toFixed(6)}<br>
+                    Lng: ${position.coords.longitude.toFixed(6)}<br>
+                    🕐 ${new Date().toLocaleTimeString()}
+                `;
+            }
+        }
+        
+        function handleLocationError(error) {
+            let message = '';
+            switch(error.code) {
+                case 1: message = '❌ Permiso denegado. Activa la ubicación en la configuración.'; break;
+                case 2: message = '❌ Ubicación no disponible.'; break;
+                case 3: message = '⏰ Timeout - Intentando de nuevo...'; break;
+            }
+            document.getElementById('status').innerHTML = message;
+        }
+        
+        async function startSharing() {
+            if (!stompClient || !stompClient.connected) {
+                try {
+                    await connectWebSocket();
+                } catch (error) {
+                    alert('No se pudo conectar al servidor');
+                    return;
+                }
+            }
+            
+            if (!navigator.geolocation) {
+                alert('Tu navegador no soporta geolocalización');
+                return;
+            }
+            
+            isSharing = true;
+            
+            watchId = navigator.geolocation.watchPosition(
+                sendLocation,
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                }
+            );
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('status').innerHTML = '🟢 Compartiendo ubicación en tiempo real...';
+            document.getElementById('status').className = 'status status-active';
+        }
+        
+        function stopSharing() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            isSharing = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('status').innerHTML = '⚪ Detenido - Ya no compartes ubicación';
+            document.getElementById('status').className = 'status status-inactive';
+        }
+        
+        // Inicializar
+        emisorId = initEmisorId();
+        connectWebSocket().catch(console.error);
+    </script>
+</body>
+</html>

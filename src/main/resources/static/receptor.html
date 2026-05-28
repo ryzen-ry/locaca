@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ Receptor - Location Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #f5576c; text-align: center; margin-bottom: 30px; }
+        h1 small { font-size: 14px; color: #666; display: block; }
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        label { font-weight: bold; display: block; margin-bottom: 10px; color: #333; }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: transform 0.2s;
+            font-weight: bold;
+        }
+        button:hover { transform: translateY(-2px); }
+        .btn-connect { background: #4CAF50; color: white; }
+        .btn-disconnect { background: #f44336; color: white; }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .status-connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-waiting { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .location-box {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .emoji-big { font-size: 48px; margin: 10px 0; }
+        .coord-text {
+            font-family: monospace;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .last-update { font-size: 12px; color: #666; margin-top: 10px; }
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            color: #f5576c;
+            text-decoration: none;
+        }
+        #map {
+            height: 300px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>👁️ Dispositivo Receptor <small>Recibe ubicación en tiempo real</small></h1>
+        
+        <div class="info-card">
+            <label>🔑 Código del Emisor:</label>
+            <input type="text" id="emisorId" placeholder="Ej: EM-ABC123" />
+            <div class="help-text">Ingresa el código que te compartió el emisor</div>
+        </div>
+        
+        <button class="btn-connect" onclick="connectAsReceptor()" id="connectBtn">🔌 Conectar al Emisor</button>
+        <button class="btn-disconnect" onclick="disconnect()" id="disconnectBtn" disabled>❌ Desconectar</button>
+        
+        <div id="status" class="status status-disconnected">⚪ Desconectado</div>
+        
+        <div id="map"></div>
+        
+        <div class="location-box" id="locationBox">
+            <div class="emoji-big">📍</div>
+            <div class="coord-text" id="coordinates">Esperando ubicación del emisor...</div>
+            <div class="last-update" id="lastUpdate"></div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="/" class="back-btn">← Volver al inicio</a>
+        </div>
+    </div>
+    
+    <script>
+        let stompClient = null;
+        let isConnected = false;
+        let currentEmisorId = null;
+        let map = null;
+        let marker = null;
+        let subscription = null;
+        
+        function initMap() {
+            map = L.map('map').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+        
+        function connectWebSocket() {
+            return new Promise((resolve, reject) => {
+                const socket = new SockJS(`${window.location.origin}/ws-location`);
+                stompClient = Stomp.over(socket);
+                
+                stompClient.connect({}, () => {
+                    console.log('✅ WebSocket conectado');
+                    resolve();
+                }, (error) => {
+                    console.error('Error de conexión:', error);
+                    reject(error);
+                });
+            });
+        }
+        
+        // NUEVA VERSIÓN: Se suscribe directamente al canal del emisor
+        function subscribeToEmitter(emisorId) {
+            // Cancelar suscripción anterior si existe
+            if (subscription) {
+                subscription.unsubscribe();
+                subscription = null;
+            }
+            
+            // Suscribirse al canal público del emisor
+            subscription = stompClient.subscribe(`/topic/location/${emisorId}`, (message) => {
+                const location = JSON.parse(message.body);
+                console.log('📍 Ubicación recibida:', location);
+                updateLocationDisplay(location);
+            });
+            
+            console.log(`✅ Suscrito a /topic/location/${emisorId}`);
+        }
+        
+        function updateLocationDisplay(location) {
+            const lat = location.latitude;
+            const lng = location.longitude;
+            
+            document.getElementById('coordinates').innerHTML = `
+                📍 Ubicación del emisor (${location.emisorId}):<br>
+                Latitud: ${lat.toFixed(6)}<br>
+                Longitud: ${lng.toFixed(6)}
+            `;
+            document.getElementById('lastUpdate').innerHTML = `Última actualización: ${new Date(location.timestamp).toLocaleTimeString()}`;
+            
+            if (map && lat && lng) {
+                if (marker) {
+                    marker.setLatLng([lat, lng]);
+                } else {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+                map.setView([lat, lng], 15);
+            }
+        }
+        
+        async function connectAsReceptor() {
+            const emisorId = document.getElementById('emisorId').value.trim().toUpperCase();
+            
+            if (!emisorId) {
+                alert('❌ Ingresa el código del emisor');
+                return;
+            }
+            
+            // Validar formato del código
+            if (!emisorId.startsWith('EM-')) {
+                alert('❌ El código debe comenzar con EM- (ejemplo: EM-ABC123)');
+                return;
+            }
+            
+            // Conectar WebSocket si no está conectado
+            if (!stompClient || !stompClient.connected) {
+                try {
+                    await connectWebSocket();
+                } catch (error) {
+                    alert('❌ No se pudo conectar al servidor');
+                    return;
+                }
+            }
+            
+            currentEmisorId = emisorId;
+            
+            // Suscribirse al emisor
+            subscribeToEmitter(emisorId);
+            
+            isConnected = true;
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('disconnectBtn').disabled = false;
+            document.getElementById('status').innerHTML = `🟢 Conectado - Recibiendo ubicación de ${emisorId}`;
+            document.getElementById('status').className = 'status status-connected';
+            
+            // Limpiar mensaje anterior
+            document.getElementById('coordinates').innerHTML = '📍 Esperando primera ubicación...';
+        }
+        
+        function disconnect() {
+            if (subscription) {
+                subscription.unsubscribe();
+                subscription = null;
+            }
+            
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+            }
+            
+            isConnected = false;
+            currentEmisorId = null;
+            
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = true;
+            document.getElementById('status').innerHTML = '⚪ Desconectado';
+            document.getElementById('status').className = 'status status-disconnected';
+            document.getElementById('coordinates').innerHTML = 'Esperando ubicación del emisor...';
+            document.getElementById('lastUpdate').innerHTML = '';
+            
+            if (marker) {
+                marker.remove();
+                marker = null;
+            }
+        }
+        
+        // Inicializar mapa al cargar
+        initMap();
+    </script>
+</body>
+</html>
