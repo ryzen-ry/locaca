@@ -37,13 +37,6 @@
             letter-spacing: 4px;
             word-break: break-all;
         }
-        .info-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            text-align: center;
-        }
         .share-btn {
             background: #25D366;
             color: white;
@@ -91,6 +84,24 @@
             color: #667eea;
             text-decoration: none;
         }
+        .config-panel {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .config-panel label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .config-panel input {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -103,9 +114,10 @@
             <button class="share-btn" onclick="shareCode()">📤 Compartir código</button>
         </div>
         
-        <div class="info-card">
-            <p>✅ <strong>No necesitas código del receptor</strong></p>
-            <p>Simplemente comparte tu código y la otra persona podrá ver tu ubicación en tiempo real.</p>
+        <div class="config-panel">
+            <label>⏱️ Actualizar cada:</label>
+            <input type="number" id="intervalSeconds" min="1" max="60" value="5" />
+            <span>segundos</span>
         </div>
         
         <button class="btn-start" onclick="startSharing()" id="startBtn">🟢 Comenzar a compartir ubicación</button>
@@ -128,8 +140,10 @@
     <script>
         let stompClient = null;
         let watchId = null;
+        let intervalId = null;  // Para el intervalo de tiempo
         let isSharing = false;
         let emisorId = null;
+        let currentPosition = null;  // Guarda la última posición conocida
         
         // Generar ID único para este emisor (se guarda para siempre)
         function initEmisorId() {
@@ -142,7 +156,7 @@
             return id;
         }
         
-        // Compartir código por WhatsApp u otras apps
+        // Compartir código
         function shareCode() {
             const url = window.location.origin + '/receptor.html';
             const text = `📍 Te invito a ver mi ubicación en tiempo real\n\nMi código es: ${emisorId}\n\nIngresa aquí: ${url}`;
@@ -174,15 +188,19 @@
             });
         }
         
-        function sendLocation(position) {
+        // Función que envía la ubicación (se llama cada N segundos)
+        function sendLocation() {
             if (!isSharing) return;
             
-            // Ya no necesita receptorId! Se envía como broadcast a todos
+            if (!currentPosition) {
+                console.log('⏳ Esperando primera ubicación...');
+                return;
+            }
+            
             const location = {
                 emisorId: emisorId,
-                receptorId: null,  // No se necesita
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
+                latitude: currentPosition.latitude,
+                longitude: currentPosition.longitude,
                 timestamp: Date.now(),
                 active: true
             };
@@ -190,12 +208,24 @@
             if (stompClient && stompClient.connected) {
                 stompClient.send("/app/send-location", {}, JSON.stringify(location));
                 document.getElementById('coordinates').innerHTML = `
-                    📍 Ubicación enviada:<br>
-                    Lat: ${position.coords.latitude.toFixed(6)}<br>
-                    Lng: ${position.coords.longitude.toFixed(6)}<br>
-                    🕐 ${new Date().toLocaleTimeString()}
+                    📍 Ubicación enviada (cada ${document.getElementById('intervalSeconds').value} segundos):<br>
+                    Lat: ${currentPosition.latitude.toFixed(6)}<br>
+                    Lng: ${currentPosition.longitude.toFixed(6)}<br>
+                    🕐 Último envío: ${new Date().toLocaleTimeString()}
                 `;
+                console.log('📍 Ubicación enviada:', location);
             }
+        }
+        
+        // Actualiza la posición actual cuando el GPS detecta cambio
+        function updatePosition(position) {
+            currentPosition = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            
+            // Opcional: mostrar que la posición se actualizó
+            console.log('📍 Posición actualizada:', currentPosition);
         }
         
         function handleLocationError(error) {
@@ -225,8 +255,12 @@
             
             isSharing = true;
             
+            // Obtener el intervalo del input (5 segundos por defecto)
+            const intervalSeconds = parseInt(document.getElementById('intervalSeconds').value) || 5;
+            
+            // 1. Escuchar cambios de posición en tiempo real (actualiza currentPosition)
             watchId = navigator.geolocation.watchPosition(
-                sendLocation,
+                updatePosition,  // Cada vez que el GPS detecta movimiento, actualiza currentPosition
                 handleLocationError,
                 {
                     enableHighAccuracy: true,
@@ -235,22 +269,38 @@
                 }
             );
             
+            // 2. Enviar la ubicación cada N segundos (incluso si no se movió)
+            intervalId = setInterval(() => {
+                sendLocation();
+            }, intervalSeconds * 1000);
+            
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerHTML = '🟢 Compartiendo ubicación en tiempo real...';
+            document.getElementById('status').innerHTML = `🟢 Compartiendo ubicación (cada ${intervalSeconds} segundos)...`;
             document.getElementById('status').className = 'status status-active';
         }
         
         function stopSharing() {
+            // Detener el seguimiento del GPS
             if (watchId) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
             }
+            
+            // Detener el intervalo de envío
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            
             isSharing = false;
+            currentPosition = null;
+            
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
             document.getElementById('status').innerHTML = '⚪ Detenido - Ya no compartes ubicación';
             document.getElementById('status').className = 'status status-inactive';
+            document.getElementById('coordinates').innerHTML = '📍 Esperando ubicación...';
         }
         
         // Inicializar
