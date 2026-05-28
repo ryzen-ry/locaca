@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👁️ Receptor - Location Tracker</title>
+    <title>🐭 El Ratón - Location Tracker</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #8D6E63 0%, #5D4037 100%);
             min-height: 100vh;
         }
         .container {
@@ -20,7 +20,7 @@
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        h1 { color: #f5576c; text-align: center; margin-bottom: 30px; }
+        h1 { color: #8D6E63; text-align: center; margin-bottom: 30px; }
         h1 small { font-size: 14px; color: #666; display: block; }
         .info-card {
             background: #f8f9fa;
@@ -79,7 +79,7 @@
         .back-btn {
             display: inline-block;
             margin-top: 20px;
-            color: #f5576c;
+            color: #8D6E63;
             text-decoration: none;
         }
         #map {
@@ -110,28 +110,28 @@
 </head>
 <body>
     <div class="container">
-        <h1>👁️ Dispositivo Receptor <small>Recibe ubicación en tiempo real</small></h1>
+        <h1>🐭 El Ratón <small>Sigue al queso en tiempo real</small></h1>
         
         <div class="info-card">
-            <label>🔑 Código del Emisor:</label>
-            <input type="text" id="emisorId" placeholder="Ej: EM-ABC123" />
-            <div class="help-text">Ingresa el código que te compartió el emisor</div>
+            <label>🧀 Código del Queso:</label>
+            <input type="text" id="quesoId" placeholder="Ej: Q-ABC123" />
+            <div class="help-text">Ingresa el código que te compartió el queso 🧀</div>
         </div>
         
         <div class="info-multi">
-            👥 <strong>Múltiples receptores</strong> - Varias personas pueden ver al mismo emisor con este código
+            🐭🐭🐭 <strong>Múltiples ratones</strong> - Varios ratones pueden seguir al mismo queso
         </div>
         
-        <button class="btn-connect" onclick="connectAsReceptor()" id="connectBtn">🔌 Conectar al Emisor</button>
-        <button class="btn-disconnect" onclick="disconnect()" id="disconnectBtn" disabled>❌ Desconectar</button>
+        <button class="btn-connect" onclick="connectAsRaton()" id="connectBtn">🔌 Seguir al queso</button>
+        <button class="btn-disconnect" onclick="disconnect()" id="disconnectBtn" disabled>❌ Dejar de seguir</button>
         
-        <div id="status" class="status status-disconnected">⚪ Desconectado</div>
+        <div id="status" class="status status-disconnected">⚪ Sin seguir al queso</div>
         
         <div id="map"></div>
         
         <div class="location-box">
-            <div class="emoji-big">📍</div>
-            <div class="coord-text" id="coordinates">Esperando ubicación del emisor...</div>
+            <div class="emoji-big">🧀 ➡️ 🐭</div>
+            <div class="coord-text" id="coordinates">Esperando ubicación del queso...</div>
             <div class="last-update" id="lastUpdate"></div>
         </div>
         
@@ -143,7 +143,7 @@
     <script>
         let stompClient = null;
         let isConnected = false;
-        let currentEmisorId = null;
+        let currentQuesoId = null;
         let map = null;
         let marker = null;
         let subscription = null;
@@ -161,7 +161,7 @@
                 stompClient = Stomp.over(socket);
                 
                 stompClient.connect({}, () => {
-                    console.log('✅ WebSocket conectado');
+                    console.log('✅ Ratón conectado al servidor');
                     resolve();
                 }, (error) => {
                     console.error('Error de conexión:', error);
@@ -170,21 +170,19 @@
             });
         }
         
-        // Suscribirse al canal público del emisor (permite múltiples receptores)
-        function subscribeToEmitter(emisorId) {
+        function subscribeToQueso(quesoId) {
             if (subscription) {
                 subscription.unsubscribe();
                 subscription = null;
             }
             
-            // Suscribirse al canal público
-            subscription = stompClient.subscribe(`/topic/location/${emisorId}`, (message) => {
+            subscription = stompClient.subscribe(`/topic/location/${quesoId}`, (message) => {
                 const location = JSON.parse(message.body);
-                console.log('📍 Ubicación recibida:', location);
+                console.log('🧀 Ubicación del queso recibida:', location);
                 updateLocationDisplay(location);
             });
             
-            console.log(`✅ Suscrito al emisor ${emisorId} (canal público)`);
+            console.log(`✅ Ratón siguiendo al queso ${quesoId}`);
         }
         
         function updateLocationDisplay(location) {
@@ -192,9 +190,9 @@
             const lng = location.longitude;
             
             document.getElementById('coordinates').innerHTML = `
-                📍 Ubicación del emisor (${location.emisorId}):<br>
-                Latitud: ${lat.toFixed(6)}<br>
-                Longitud: ${lng.toFixed(6)}
+                🧀 ¡El queso está aquí! (${location.emisorId})<br>
+                📍 Latitud: ${lat.toFixed(6)}<br>
+                📍 Longitud: ${lng.toFixed(6)}
             `;
             document.getElementById('lastUpdate').innerHTML = `Última actualización: ${new Date(location.timestamp).toLocaleTimeString()}`;
             
@@ -203,21 +201,22 @@
                     marker.setLatLng([lat, lng]);
                 } else {
                     marker = L.marker([lat, lng]).addTo(map);
+                    marker.bindTooltip('🧀 Queso').openTooltip();
                 }
                 map.setView([lat, lng], 15);
             }
         }
         
-        async function connectAsReceptor() {
-            const emisorId = document.getElementById('emisorId').value.trim().toUpperCase();
+        async function connectAsRaton() {
+            const quesoId = document.getElementById('quesoId').value.trim().toUpperCase();
             
-            if (!emisorId) {
-                alert('❌ Ingresa el código del emisor');
+            if (!quesoId) {
+                alert('❌ Ingresa el código del queso');
                 return;
             }
             
-            if (!emisorId.startsWith('EM-')) {
-                alert('❌ El código debe comenzar con EM- (ejemplo: EM-ABC123)');
+            if (!quesoId.startsWith('Q-')) {
+                alert('❌ El código debe comenzar con Q- (ejemplo: Q-ABC123)');
                 return;
             }
             
@@ -230,15 +229,15 @@
                 }
             }
             
-            currentEmisorId = emisorId;
-            subscribeToEmitter(emisorId);
+            currentQuesoId = quesoId;
+            subscribeToQueso(quesoId);
             
             isConnected = true;
             document.getElementById('connectBtn').disabled = true;
             document.getElementById('disconnectBtn').disabled = false;
-            document.getElementById('status').innerHTML = `🟢 Conectado - Recibiendo ubicación de ${emisorId}`;
+            document.getElementById('status').innerHTML = `🐭 Siguiendo al queso ${quesoId}`;
             document.getElementById('status').className = 'status status-connected';
-            document.getElementById('coordinates').innerHTML = '📍 Esperando primera ubicación...';
+            document.getElementById('coordinates').innerHTML = '🧀 Esperando la primera ubicación del queso...';
         }
         
         function disconnect() {
@@ -253,13 +252,13 @@
             }
             
             isConnected = false;
-            currentEmisorId = null;
+            currentQuesoId = null;
             
             document.getElementById('connectBtn').disabled = false;
             document.getElementById('disconnectBtn').disabled = true;
-            document.getElementById('status').innerHTML = '⚪ Desconectado';
+            document.getElementById('status').innerHTML = '⚪ Sin seguir al queso';
             document.getElementById('status').className = 'status status-disconnected';
-            document.getElementById('coordinates').innerHTML = 'Esperando ubicación del emisor...';
+            document.getElementById('coordinates').innerHTML = 'Esperando ubicación del queso...';
             document.getElementById('lastUpdate').innerHTML = '';
             
             if (marker) {
