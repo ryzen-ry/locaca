@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📍 Location Tracker</title>
+    <title>🧀🐭 Queso y Ratón - Localizador</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #F9A825 0%, #FF8F00 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,7 +23,8 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             text-align: center;
         }
-        h1 { color: #667eea; margin-bottom: 20px; }
+        h1 { color: #F9A825; margin-bottom: 10px; }
+        h1 span { font-size: 48px; }
         .subtitle { color: #666; margin-bottom: 40px; }
         .card-container {
             display: flex;
@@ -41,8 +42,8 @@
             cursor: pointer;
         }
         .card:hover { transform: translateY(-5px); }
-        .card-emisor { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .card-receptor { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .card-queso { background: linear-gradient(135deg, #F9A825 0%, #FF8F00 100%); color: white; }
+        .card-raton { background: linear-gradient(135deg, #8D6E63 0%, #5D4037 100%); color: white; }
         .card-icon { font-size: 48px; margin-bottom: 20px; }
         .card-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
         .card-description { font-size: 14px; opacity: 0.9; }
@@ -59,28 +60,28 @@
 </head>
 <body>
     <div class="container">
-        <h1>📍 Location Tracker</h1>
-        <div class="subtitle">Comparte tu ubicación en tiempo realll</div>
+        <h1><span>🧀</span> Queso y Ratón <span>🐭</span></h1>
+        <div class="subtitle">Comparte tu ubicación en tiempo real</div>
         
         <div class="card-container">
-            <a href="/emisor.html" class="card card-emisor">
-                <div class="card-icon">📡</div>
-                <div class="card-title">Dispositivo Emisor</div>
-                <div class="card-description">Comparte tu ubicación con otro dispositivo</div>
+            <a href="/queso.html" class="card card-queso">
+                <div class="card-icon">🧀</div>
+                <div class="card-title">El Queso</div>
+                <div class="card-description">Comparte tu ubicación (el queso) con los ratones</div>
             </a>
             
-            <a href="/receptor.html" class="card card-receptor">
-                <div class="card-icon">👁️</div>
-                <div class="card-title">Dispositivo Receptor</div>
-                <div class="card-description">Recibe la ubicación del emisor</div>
+            <a href="/raton.html" class="card card-raton">
+                <div class="card-icon">🐭</div>
+                <div class="card-title">El Ratón</div>
+                <div class="card-description">Sigue al queso en tiempo real</div>
             </a>
         </div>
         
         <div class="info">
             💡 <strong>Cómo funciona:</strong><br>
-            1. Un dispositivo se conecta como EMISOR y comparte su ubicación<br>
-            2. El otro dispositivo se conecta como RECEPTOR usando el código del emisor<br>
-            3. La ubicación se actualiza en tiempo real
+            1. El <strong>Queso 🧀</strong> genera un código y comparte su ubicación<br>
+            2. Los <strong>Ratones 🐭</strong> usan ese código para ver dónde está el queso<br>
+            3. ¡Múltiples ratones pueden seguir al mismo queso!
         </div>
     </div>
 </body>
