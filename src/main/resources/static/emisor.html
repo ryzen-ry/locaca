@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧀 El Queso - Location Tracker</title>
+    <title>📡 Emisor - Location Tracker</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #F9A825 0%, #FF8F00 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
         .container {
@@ -20,9 +20,9 @@
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        h1 { color: #F9A825; text-align: center; margin-bottom: 30px; }
+        h1 { color: #667eea; text-align: center; margin-bottom: 30px; }
         .code-box {
-            background: linear-gradient(135deg, #F9A825 0%, #FF8F00 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 25px;
             border-radius: 15px;
             text-align: center;
@@ -95,7 +95,7 @@
         .back-btn {
             display: inline-block;
             margin-top: 20px;
-            color: #F9A825;
+            color: #667eea;
             text-decoration: none;
         }
         .config-panel {
@@ -135,10 +135,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧀 El Queso</h1>
+        <h1>📡 Dispositivo Emisor</h1>
         
         <div class="code-box">
-            <div class="code-label">🔑 CÓDIGO DEL QUESO (Compártelo con los ratones)</div>
+            <div class="code-label">🔑 CÓDIGO ACTUAL (Compártelo con los receptores)</div>
             <div class="code-value" id="emisorCode">---</div>
             <div class="code-buttons">
                 <button class="btn-generate" onclick="generateNewCode()">🔄 Generar nuevo código</button>
@@ -147,7 +147,7 @@
         </div>
         
         <div class="info-multi">
-            🐭 <strong>Múltiples ratones</strong> - Varios ratones pueden seguir este queso al mismo tiempo
+            📢 <strong>Múltiples receptores</strong> - Puedes compartir este código con varias personas. ¡Todas te verán al mismo tiempo!
         </div>
         
         <div class="config-panel">
@@ -156,13 +156,13 @@
             <span>segundos</span>
         </div>
         
-        <button class="btn-start" onclick="startSharing()" id="startBtn" disabled>🟢 Compartir ubicación (soy el queso)</button>
+        <button class="btn-start" onclick="startSharing()" id="startBtn" disabled>🟢 Comenzar a compartir ubicación</button>
         <button class="btn-stop" onclick="stopSharing()" id="stopBtn" disabled>🔴 Detener</button>
         
         <div id="status" class="status status-inactive">⚪ Sin código - Presiona "Generar nuevo código"</div>
         
         <div class="coordinates" id="coordinates">
-            🧀 Esperando ubicación del queso...
+            📍 Esperando ubicación...
         </div>
         
         <div style="text-align: center;">
@@ -178,44 +178,49 @@
         let watchId = null;
         let intervalId = null;
         let isSharing = false;
-        let quesoId = null;
+        let emisorId = null;
         let currentPosition = null;
         
-        // Cambio: emisorId ahora es quesoId
+        // Generar nuevo código (sin localStorage)
         function generateNewCode() {
-            const newCode = 'Q-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-            quesoId = newCode;
-            document.getElementById('emisorCode').innerText = quesoId;
+            // Generar código completamente nuevo y aleatorio
+            const newCode = 'EM-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+            emisorId = newCode;
+            document.getElementById('emisorCode').innerText = emisorId;
             
+            // Si ya estaba compartiendo, detenerlo porque cambió el código
             if (isSharing) {
                 stopSharing();
-                document.getElementById('status').innerHTML = '⚠️ Código cambiado. Presiona "Compartir ubicación" para activarlo';
+                document.getElementById('status').innerHTML = '⚠️ Código cambiado. Presiona "Comenzar a compartir" para activarlo';
                 document.getElementById('status').className = 'status status-warning';
             }
             
+            // Habilitar el botón de comenzar
             document.getElementById('startBtn').disabled = false;
-            console.log('✅ Nuevo código de queso:', quesoId);
-            return quesoId;
+            
+            console.log('✅ Nuevo código generado:', emisorId);
+            return emisorId;
         }
         
+        // Compartir código por WhatsApp u otras apps
         function shareCode() {
-            if (!quesoId) {
+            if (!emisorId) {
                 alert('⚠️ Primero genera un código presionando "Generar nuevo código"');
                 return;
             }
             
-            const url = window.location.origin + '/raton.html';
-            const text = `🧀 ¡El queso está aquí!\n\nCódigo del queso: ${quesoId}\n\nÚnete como ratón: ${url}`;
+            const url = window.location.origin + '/receptor.html';
+            const text = `📍 Te invito a ver mi ubicación en tiempo real\n\nMi código es: ${emisorId}\n\nIngresa aquí: ${url}`;
             
             if (navigator.share) {
                 navigator.share({
-                    title: 'Queso Tracker',
-                    text: `Código del queso: ${quesoId}`,
+                    title: 'Location Tracker',
+                    text: `Mi código es: ${emisorId}`,
                     url: url
                 });
             } else {
-                navigator.clipboard.writeText(`${quesoId}`);
-                alert(`✅ Código ${quesoId} copiado. ¡Compártelo con los ratones!`);
+                navigator.clipboard.writeText(`${emisorId}`);
+                alert(`✅ Código ${emisorId} copiado al portapapeles. Compártelo con tus receptores.`);
             }
         }
         
@@ -225,7 +230,7 @@
                 stompClient = Stomp.over(socket);
                 
                 stompClient.connect({}, () => {
-                    console.log('✅ Queso conectado al servidor');
+                    console.log('✅ Conectado al servidor');
                     resolve();
                 }, (error) => {
                     console.error('❌ Error de conexión:', error);
@@ -234,16 +239,17 @@
             });
         }
         
+        // Enviar ubicación al canal público (múltiples receptores)
         function sendLocation() {
             if (!isSharing) return;
-            if (!quesoId) return;
+            if (!emisorId) return;
             if (!currentPosition) {
-                console.log('⏳ Esperando ubicación del queso...');
+                console.log('⏳ Esperando primera ubicación...');
                 return;
             }
             
             const location = {
-                emisorId: quesoId,
+                emisorId: emisorId,
                 latitude: currentPosition.latitude,
                 longitude: currentPosition.longitude,
                 timestamp: Date.now(),
@@ -251,30 +257,32 @@
             };
             
             if (stompClient && stompClient.connected) {
+                // Enviar al canal público para que múltiples receptores lo reciban
                 stompClient.send("/app/send-location", {}, JSON.stringify(location));
                 document.getElementById('coordinates').innerHTML = `
-                    🧀 Ubicación del queso (cada ${document.getElementById('intervalSeconds').value} segundos)<br>
-                    🆔 Código: ${quesoId}<br>
-                    📍 Lat: ${currentPosition.latitude.toFixed(6)}<br>
-                    📍 Lng: ${currentPosition.longitude.toFixed(6)}<br>
+                    📍 Ubicación enviada (cada ${document.getElementById('intervalSeconds').value} segundos)<br>
+                    📡 Código activo: ${emisorId}<br>
+                    Lat: ${currentPosition.latitude.toFixed(6)}<br>
+                    Lng: ${currentPosition.longitude.toFixed(6)}<br>
                     🕐 Último envío: ${new Date().toLocaleTimeString()}
                 `;
-                console.log('🧀 Ubicación del queso enviada:', location);
+                console.log('📍 Ubicación enviada al canal público:', location);
             }
         }
         
+        // Actualiza la posición actual cuando el GPS detecta cambio
         function updatePosition(position) {
             currentPosition = {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude
             };
-            console.log('🧀 Posición del queso actualizada:', currentPosition);
+            console.log('📍 Posición actualizada:', currentPosition);
         }
         
         function handleLocationError(error) {
             let message = '';
             switch(error.code) {
-                case 1: message = '❌ Permiso denegado. Activa la ubicación para que los ratones te encuentren.'; break;
+                case 1: message = '❌ Permiso denegado. Activa la ubicación en la configuración.'; break;
                 case 2: message = '❌ Ubicación no disponible.'; break;
                 case 3: message = '⏰ Timeout - Intentando de nuevo...'; break;
             }
@@ -282,7 +290,7 @@
         }
         
         async function startSharing() {
-            if (!quesoId) {
+            if (!emisorId) {
                 alert('⚠️ Primero genera un código presionando "Generar nuevo código"');
                 return;
             }
@@ -305,6 +313,7 @@
             
             const intervalSeconds = parseInt(document.getElementById('intervalSeconds').value) || 5;
             
+            // 1. Escuchar cambios de posición
             watchId = navigator.geolocation.watchPosition(
                 updatePosition,
                 handleLocationError,
@@ -315,13 +324,14 @@
                 }
             );
             
+            // 2. Enviar ubicación cada N segundos
             intervalId = setInterval(() => {
                 sendLocation();
             }, intervalSeconds * 1000);
             
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
-            document.getElementById('status').innerHTML = `🟢 El queso está siendo compartido (cada ${intervalSeconds}s) - Código: ${quesoId}`;
+            document.getElementById('status').innerHTML = `🟢 Compartiendo ubicación (cada ${intervalSeconds} segundos) - Código: ${emisorId}`;
             document.getElementById('status').className = 'status status-active';
         }
         
@@ -340,10 +350,12 @@
             
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
-            document.getElementById('status').innerHTML = '⚪ El queso ya no comparte ubicación';
+            document.getElementById('status').innerHTML = '⚪ Detenido - Ya no compartes ubicación';
             document.getElementById('status').className = 'status status-inactive';
         }
         
+        // Inicializar: NO generar código automáticamente
+        // El usuario debe presionar "Generar nuevo código"
         connectWebSocket().catch(console.error);
     </script>
 </body>
