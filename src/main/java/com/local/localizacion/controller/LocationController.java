@@ -16,7 +16,9 @@ public class LocationController {
     
     @MessageMapping("/send-location")
     public void handleLocation(@Payload LocationMessage location) {
-        // Enviar a todos los que estén suscritos al emisor específico
+        // Enviar a un canal PÚBLICO para que múltiples receptores lo reciban
         messagingTemplate.convertAndSend("/topic/location/" + location.getEmisorId(), location);
+        System.out.println("📍 Ubicación de " + location.getEmisorId() + 
+                           " enviada a /topic/location/" + location.getEmisorId());
     }
 }
